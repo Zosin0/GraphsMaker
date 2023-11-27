@@ -224,6 +224,10 @@ class GrafoApp:
         # Desabilita a edição do texto
         texto_relatorio.config(state="disabled")
 
+    def obter_matriz_adjacencia(self):
+        matriz_adjacencia = nx.to_numpy_array(self.grafo, nodelist=self.vertices)
+        return matriz_adjacencia
+    
     def gerar_relatorio(self):
         relatorio = f"Grafo: {self.nome_grafo.get()}\n"
         relatorio += f"- Número de vértices: {self.grafo.number_of_nodes()}\n"
@@ -254,8 +258,12 @@ class GrafoApp:
         relatorio += f"- Número Cromático: {nx.coloring.greedy_color(self.grafo, strategy='largest_first')}\n"
         relatorio += f"- Densidade: {nx.density(self.grafo)}\n"
 
-        return relatorio
+        # Adiciona a matriz de adjacência ao relatório
+        relatorio += "\nMatriz de Adjacência:\n"
+        matriz_adjacencia = self.obter_matriz_adjacencia()
+        relatorio += str(matriz_adjacencia)
 
+        return relatorio
 
 if __name__ == "__main__":
     root = Tk()
