@@ -123,10 +123,71 @@ class GrafoApp:
             # Adiciona informações do vértice
             self.canvas.create_text(x, y, text=str(vertice), font=("Helvetica", 10, "bold"), tags="vertices")
 
+    # def executar_algoritmo(self):
+    #     if not self.grafo.nodes() or not self.grafo.edges():
+    #         messagebox.showinfo("Aviso", "O grafo precisa ter vértices e arestas para executar os algoritmos.")
+    #         return
     def executar_algoritmo(self):
         if not self.grafo.nodes() or not self.grafo.edges():
             messagebox.showinfo("Aviso", "O grafo precisa ter vértices e arestas para executar os algoritmos.")
             return
+
+        algoritmo = askstring("Escolha o Algoritmo", "Escolha o algoritmo a ser executado:\nPrim, Kruskal, Componentes Conexos, Floyd-Warshall")
+        if not algoritmo:
+            return
+
+        if algoritmo.lower() == "prim":
+            self.executar_prim()
+        elif algoritmo.lower() == "kruskal":
+            self.executar_kruskal()
+        elif algoritmo.lower() == "componentes conexos":
+            self.executar_componentes_conexos()
+        elif algoritmo.lower() == "floyd-warshall":
+            self.executar_floyd_warshall()
+        # Adicione mais opções conforme necessário
+
+    def executar_prim(self):
+        # Exemplo: Prim
+        try:
+            pos = nx.spring_layout(self.grafo)
+            arvore_geradora_minima_prim = nx.minimum_spanning_tree(self.grafo, algorithm='prim')
+            print("Árvore Geradora Mínima (Prim):", arvore_geradora_minima_prim.edges())
+            nx.draw_networkx_edges(self.grafo, pos, edgelist=arvore_geradora_minima_prim.edges(), edge_color='r', width=2)
+            plt.show()
+        except Exception as e:
+            messagebox.showinfo("Erro", f"Erro ao executar Prim: {e}")
+
+    def executar_kruskal(self):
+        # Exemplo: Kruskal
+        try:
+            pos = nx.spring_layout(self.grafo)
+            arvore_geradora_minima_kruskal = nx.minimum_spanning_tree(self.grafo.to_undirected(), algorithm='kruskal')
+            print("Árvore Geradora Mínima (Kruskal):", arvore_geradora_minima_kruskal.edges())
+            nx.draw_networkx_edges(self.grafo, pos, edgelist=arvore_geradora_minima_kruskal.edges(), edge_color='r', width=2)
+            plt.show()
+        except Exception as e:
+            messagebox.showinfo("Erro", f"Erro ao executar Kruskal: {e}")
+
+    def executar_componentes_conexos(self):
+        # Exemplo: Componentes Conexos
+        try:
+            componentes = list(nx.connected_components(self.grafo.to_undirected()))
+            print("Componentes Conexos:", componentes)
+            messagebox.showinfo("Componentes Conexos", f"Componentes Conexos: {componentes}")
+        except Exception as e:
+            messagebox.showinfo("Erro", f"Erro ao executar Componentes Conexos: {e}")
+
+    def executar_floyd_warshall(self):
+        # Exemplo: Floyd-Warshall
+        try:
+            matriz_distancias = nx.floyd_warshall_numpy(self.grafo)
+            print("Matriz de Distâncias (Floyd-Warshall):")
+            print(matriz_distancias)
+            messagebox.showinfo("Floyd-Warshall", f"Matriz de Distâncias:\n{matriz_distancias}")
+        except Exception as e:
+            messagebox.showinfo("Erro", f"Erro ao executar Floyd-Warshall: {e}")
+
+    # Adicione mais funções de execução de algoritmos conforme necessário
 
 
 if __name__ == "__main__":
