@@ -7,7 +7,10 @@ from tkinter.simpledialog import askstring, askfloat
 class GrafoApp:
     def __init__(self, master):
         self.master = master
-        self.master.title("Grafo App")
+        self.master.title("Zoser Grafo Maker")
+        
+        self.nome_grafo = StringVar()
+        self.nome_grafo.set("Grafo")
 
         self.grafo = nx.DiGraph()  # Agora usando um grafo direcionado
         self.pos = {}
@@ -25,6 +28,9 @@ class GrafoApp:
 
         self.botao_executar_algoritmo = Button(self.master, text="Executar Algoritmo", command=self.executar_algoritmo)
         self.botao_executar_algoritmo.pack(side=LEFT)
+
+        self.botao_relatorio = Button(self.master, text="Relatório", command=self.exibir_relatorio)
+        self.botao_relatorio.pack(side=LEFT)
 
         self.habilitar_adicao_vertice()
 
@@ -123,16 +129,12 @@ class GrafoApp:
             # Adiciona informações do vértice
             self.canvas.create_text(x, y, text=str(vertice), font=("Helvetica", 10, "bold"), tags="vertices")
 
-    # def executar_algoritmo(self):
-    #     if not self.grafo.nodes() or not self.grafo.edges():
-    #         messagebox.showinfo("Aviso", "O grafo precisa ter vértices e arestas para executar os algoritmos.")
-    #         return
     def executar_algoritmo(self):
         if not self.grafo.nodes() or not self.grafo.edges():
             messagebox.showinfo("Aviso", "O grafo precisa ter vértices e arestas para executar os algoritmos.")
             return
 
-        algoritmo = askstring("Escolha o Algoritmo", "Escolha o algoritmo a ser executado:\nPrim, Kruskal, Componentes Conexos, Floyd-Warshall")
+        algoritmo = askstring("Escolha o Algoritmo", "Escolha o algoritmo a ser executado:\nPrim, Kruskal, Componentes Conexos, Floyd-Warshall, Ford-Fulkerson, Hopcroft-Karp")
         if not algoritmo:
             return
 
@@ -144,10 +146,14 @@ class GrafoApp:
             self.executar_componentes_conexos()
         elif algoritmo.lower() == "floyd-warshall":
             self.executar_floyd_warshall()
-        # Adicione mais opções conforme necessário
+        elif algoritmo.lower() == "ford-fulkerson":
+            self.executar_ford_fulkerson()
+        elif algoritmo.lower() == "hopcroft-karp":
+            self.executar_hopcroft_karp()
+        else:
+            messagebox.showinfo("Aviso", "Algoritmo não reconhecido.")
 
     def executar_prim(self):
-        # Exemplo: Prim
         try:
             pos = nx.spring_layout(self.grafo)
             arvore_geradora_minima_prim = nx.minimum_spanning_tree(self.grafo, algorithm='prim')
@@ -158,7 +164,6 @@ class GrafoApp:
             messagebox.showinfo("Erro", f"Erro ao executar Prim: {e}")
 
     def executar_kruskal(self):
-        # Exemplo: Kruskal
         try:
             pos = nx.spring_layout(self.grafo)
             arvore_geradora_minima_kruskal = nx.minimum_spanning_tree(self.grafo.to_undirected(), algorithm='kruskal')
@@ -169,7 +174,6 @@ class GrafoApp:
             messagebox.showinfo("Erro", f"Erro ao executar Kruskal: {e}")
 
     def executar_componentes_conexos(self):
-        # Exemplo: Componentes Conexos
         try:
             componentes = list(nx.connected_components(self.grafo.to_undirected()))
             print("Componentes Conexos:", componentes)
@@ -178,7 +182,6 @@ class GrafoApp:
             messagebox.showinfo("Erro", f"Erro ao executar Componentes Conexos: {e}")
 
     def executar_floyd_warshall(self):
-        # Exemplo: Floyd-Warshall
         try:
             matriz_distancias = nx.floyd_warshall_numpy(self.grafo)
             print("Matriz de Distâncias (Floyd-Warshall):")
@@ -187,7 +190,71 @@ class GrafoApp:
         except Exception as e:
             messagebox.showinfo("Erro", f"Erro ao executar Floyd-Warshall: {e}")
 
-    # Adicione mais funções de execução de algoritmos conforme necessário
+    def executar_ford_fulkerson(self):
+        try:
+            # Adicione aqui a implementação do Ford-Fulkerson
+            messagebox.showinfo("Aviso", "Ford-Fulkerson ainda não implementado.")
+        except Exception as e:
+            messagebox.showinfo("Erro", f"Erro ao executar Ford-Fulkerson: {e}")
+
+    def executar_hopcroft_karp(self):
+        try:
+            if not nx.is_bipartite(self.grafo):
+                messagebox.showinfo("Aviso", "Hopcroft-Karp só é aplicável a grafos bipartidos.")
+                return
+
+            matching_hopcroft_karp = nx.bipartite.maximum_matching(self.grafo)
+            print("Emparelhamento Máximo (Hopcroft-Karp):", matching_hopcroft_karp)
+            messagebox.showinfo("Hopcroft-Karp", f"Emparelhamento Máximo (Hopcroft-Karp):\n{matching_hopcroft_karp}")
+        except Exception as e:
+            messagebox.showinfo("Erro", f"Erro ao executar Hopcroft-Karp: {e}")
+
+    def exibir_relatorio(self):
+        relatorio = self.gerar_relatorio()
+
+        # Cria uma nova janela
+        janela_relatorio = Toplevel(self.master)
+        janela_relatorio.title("Relatório do Grafo")
+
+        # Cria um widget Text e adiciona o relatório
+        texto_relatorio = Text(janela_relatorio, wrap="word")
+        texto_relatorio.insert("1.0", relatorio)
+        texto_relatorio.pack()
+
+        # Desabilita a edição do texto
+        texto_relatorio.config(state="disabled")
+
+    def gerar_relatorio(self):
+        relatorio = f"Grafo: {self.nome_grafo.get()}\n"
+        relatorio += f"- Número de vértices: {self.grafo.number_of_nodes()}\n"
+        relatorio += f"- Número de arestas: {self.grafo.number_of_edges()}\n"
+        if self.grafo.is_directed():
+        # Para grafos direcionados, verifique a conectividade forte e fraca
+            relatorio += f"- Conexo (fortemente): {nx.is_strongly_connected(self.grafo)}\n"
+            relatorio += f"- Conexo (fracamente): {nx.is_weakly_connected(self.grafo)}\n"
+        else:
+            # Para grafos não direcionados, use nx.is_connected
+            relatorio += f"- Conexo: {nx.is_connected(self.grafo)}\n"
+        
+        #relatorio += f"- Cíclico: {nx.is_cyclic(self.grafo)}\n"
+        #relatorio += f"- Multigrafo: {nx.is_multigraph(self.grafo)}\n"
+        #relatorio += f"- Isomorfo: {nx.is_isomorphic(self.grafo, nx.complete_graph(len(self.grafo)))}\n"
+        relatorio += f"- Regular: {nx.is_regular(self.grafo)}\n"
+        relatorio += f"- Bipartido: {nx.is_bipartite(self.grafo)}\n"
+        relatorio += f"- Não-Direcionado: {not self.grafo.is_directed()}\n"
+        relatorio += f"- Desconexo: {nx.is_connected(self.grafo.to_undirected())}\n"
+        relatorio += f"- Acíclico: {nx.is_directed_acyclic_graph(self.grafo)}\n"
+        relatorio += f"- Árvore: {nx.is_tree(self.grafo)}\n"
+        relatorio += f"- Floresta: {nx.is_forest(self.grafo)}\n"
+        relatorio += f"- Possui Laços: {nx.number_of_selfloops(self.grafo) > 0}\n"
+        relatorio += f"- Plano: {nx.is_planar(self.grafo)}\n"
+        relatorio += f"- Ordem: {self.grafo.order()}\n"
+        relatorio += f"- Grau Máximo: {max(dict(self.grafo.degree()).values())}\n"
+        relatorio += f"- Grau Mínimo: {min(dict(self.grafo.degree()).values())}\n"
+        relatorio += f"- Número Cromático: {nx.coloring.greedy_color(self.grafo, strategy='largest_first')}\n"
+        relatorio += f"- Densidade: {nx.density(self.grafo)}\n"
+
+        return relatorio
 
 
 if __name__ == "__main__":
