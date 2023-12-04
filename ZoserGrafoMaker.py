@@ -1,8 +1,34 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 from tkinter import *
-from tkinter import messagebox
+from tkinter import messagebox, simpledialog, Label, Entry, Checkbutton, IntVar
 from tkinter.simpledialog import askstring, askfloat
+
+
+class CustomDialog(simpledialog.Dialog):
+    def body(self, master):
+        Label(master, text="Peso da Aresta:").grid(row=0)
+        Label(master, text="Aresta é Direcionada?").grid(row=1)
+        Label(master, text="Nome da Aresta:").grid(row=2)
+
+        self.e1 = Entry(master)
+        self.e2_var = IntVar()
+        self.e2 = Checkbutton(master, variable=self.e2_var)
+        self.e3 = Entry(master)
+
+        self.e1.grid(row=0, column=1)
+        self.e2.grid(row=1, column=1)
+        self.e3.grid(row=2, column=1)
+
+        return self.e1 # initial focus
+
+    def apply(self):
+        peso = self.e1.get()
+        direcionada = self.e2_var.get()
+        nome_aresta = self.e3.get()
+        self.result = peso, direcionada, nome_aresta
+
+
 
 class GrafoApp:
     def __init__(self, master):
@@ -83,9 +109,11 @@ class GrafoApp:
             messagebox.showinfo("Aviso", f"A aresta entre {v1} e {v2} já existe.")
             return
 
-        peso = askfloat("Peso da Aresta", "Insira o peso da aresta (deixe em branco para nenhum):", minvalue=0)
-        direcionada = messagebox.askyesno("Aresta Direcionada", "A aresta é direcionada?")
-        nome_aresta = askstring("Nome da Aresta", "Insira o nome da aresta (opcional):")
+        dialog = CustomDialog(self.master)
+        if dialog.result is None:
+            return
+
+        peso, direcionada, nome_aresta = dialog.result
 
         estilo = {'weight': peso or "", 'directed': direcionada, 'nome': nome_aresta}
         self.arestas.append((v1, v2, estilo))
