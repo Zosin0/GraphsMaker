@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from tkinter import *
 from tkinter import messagebox, simpledialog, Label, Entry, Checkbutton, IntVar
 from tkinter.simpledialog import askstring, askfloat
+import easygui
 
 
 class CustomDialog(simpledialog.Dialog):
@@ -157,12 +158,28 @@ class GrafoApp:
             # Adiciona informações do vértice
             self.canvas.create_text(x, y, text=str(vertice), font=("Helvetica", 10, "bold"), tags="vertices")
 
+    def gerar_grafo_networkx(self):
+        G = nx.DiGraph() if self.direcionado else nx.Graph()
+
+        # Adiciona os vértices ao grafo
+        for v in self.vertices:
+            G.add_node(v)
+
+        # Adiciona as arestas ao grafo
+        for v1, v2, estilo in self.arestas:
+            G.add_edge(v1, v2, weight=estilo['weight'])
+
+        return G
+
+
     def executar_algoritmo(self):
         if not self.grafo.nodes() or not self.grafo.edges():
             messagebox.showinfo("Aviso", "O grafo precisa ter vértices e arestas para executar os algoritmos.")
             return
 
-        algoritmo = askstring("Escolha o Algoritmo", "Escolha o algoritmo a ser executado:\nPrim, Kruskal, Componentes Conexos, Floyd-Warshall, Ford-Fulkerson, Hopcroft-Karp")
+        algoritmos = ["Prim", "Kruskal", "Componentes Conexos", "Floyd-Warshall", "Ford-Fulkerson", "Hopcroft-Karp", "Encontrar Caminho Mais Curto"]
+        algoritmo = easygui.choicebox("Escolha o algoritmo a ser executado:", choices=algoritmos)
+
         if not algoritmo:
             return
 
@@ -178,6 +195,8 @@ class GrafoApp:
             self.executar_ford_fulkerson()
         elif algoritmo.lower() == "hopcroft-karp":
             self.executar_hopcroft_karp()
+        elif algoritmo.lower() == "encontrar caminho mais curto":
+            self.encontrar_caminho_mais_curto()
         else:
             messagebox.showinfo("Aviso", "Algoritmo não reconhecido.")
 
@@ -256,6 +275,11 @@ class GrafoApp:
         matriz_adjacencia = nx.to_numpy_array(self.grafo, nodelist=self.vertices)
         return matriz_adjacencia
     
+    def encontrar_caminho_mais_curto(self, v1, v2):
+        G = self.gerar_grafo_networkx()
+        return nx.shortest_path(G, v1, v2)
+
+
     def gerar_relatorio(self):
         relatorio = f"Grafo: {self.nome_grafo.get()}\n"
         relatorio += f"- Número de vértices: {self.grafo.number_of_nodes()}\n"
