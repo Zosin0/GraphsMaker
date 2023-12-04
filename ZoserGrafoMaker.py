@@ -1,7 +1,7 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 from tkinter import *
-from tkinter import messagebox, simpledialog, Label, Entry, Checkbutton, IntVar
+from tkinter import messagebox, simpledialog, Label, Entry, Checkbutton, IntVar, Button
 from tkinter.simpledialog import askstring, askfloat
 import easygui
 
@@ -21,10 +21,11 @@ class CustomDialog(simpledialog.Dialog):
         self.e2.grid(row=1, column=1)
         self.e3.grid(row=2, column=1)
 
-        return self.e1 # initial focus
-
+        return self.e1 
+    
     def apply(self):
-        peso = self.e1.get()
+        peso_str = self.e1.get()
+        peso = float(peso_str) if peso_str.replace('.', '').isdigit() else 1.0
         direcionada = self.e2_var.get()
         nome_aresta = self.e3.get()
         self.result = peso, direcionada, nome_aresta
@@ -35,17 +36,24 @@ class GrafoApp:
     def __init__(self, master):
         self.master = master
         self.master.title("Zoser Grafo Maker")
-        
+
         self.nome_grafo = StringVar()
         self.nome_grafo.set("Grafo")
 
-        self.grafo = nx.DiGraph()  # Agora usando um grafo direcionado
+        self.tipo_grafo_var = IntVar()  # Variável de controle para escolher o tipo do grafo
+        self.tipo_grafo_var.set(1)  # Padrão para grafo direcionado
+
+        self.grafo = nx.DiGraph() if self.tipo_grafo_var.get() == 1 else nx.Graph()  # Tipo do grafo dependente da escolha do usuário
         self.pos = {}
         self.vertices = []
         self.arestas = []
 
         self.canvas = Canvas(self.master, width=600, height=600, bg='white')
         self.canvas.pack()
+
+        # Adicione um Checkbutton para escolher o tipo do grafo
+        self.checkbutton_direcionado = Checkbutton(self.master, text="Grafo Direcionado", variable=self.tipo_grafo_var, command=self.atualizar_tipo_grafo)
+        self.checkbutton_direcionado.pack()
 
         self.botao_adicionar_vertice = Button(self.master, text="Adicionar Vértice", command=self.habilitar_adicao_vertice)
         self.botao_adicionar_vertice.pack(side=LEFT)
@@ -59,7 +67,12 @@ class GrafoApp:
         self.botao_relatorio = Button(self.master, text="Relatório", command=self.exibir_relatorio)
         self.botao_relatorio.pack(side=LEFT)
 
+
         self.habilitar_adicao_vertice()
+
+    def atualizar_tipo_grafo(self):
+        # Função chamada quando o usuário atualiza a escolha do tipo do grafo
+        self.grafo = nx.DiGraph() if self.tipo_grafo_var.get() == 1 else nx.Graph()
 
     def habilitar_adicao_vertice(self):
         self.canvas.bind("<Button-1>", self.adicionar_vertice)
@@ -91,7 +104,7 @@ class GrafoApp:
 
         for vertice, (vx, vy) in self.pos.items():
             distancia = ((x - vx) ** 2 + (y - vy) ** 2) ** 0.5
-            if distancia <= 20:  # Raio do círculo do vértice
+            if distancia <= 20:  
                 vertice_selecionado = vertice
                 break
 
@@ -115,8 +128,10 @@ class GrafoApp:
             return
 
         peso, direcionada, nome_aresta = dialog.result
-
-        estilo = {'weight': peso or "", 'directed': direcionada, 'nome': nome_aresta}
+        
+        # Modificação para garantir a correta marcação de direcionada
+        estilo = {'weight': peso or "", 'directed': bool(direcionada), 'nome': nome_aresta}
+        
         self.arestas.append((v1, v2, estilo))
         self.grafo.add_edge(v1, v2, **estilo)
 
@@ -137,19 +152,18 @@ class GrafoApp:
             else:
                 # Aresta normal
                 if dados['directed']:
-                    # Aresta direcionada: desenhe duas linhas com uma seta no centro
-                    self.canvas.create_line(x1, y1, xc, yc, width=2, arrow="last", tags="arestas")
-                    self.canvas.create_line(xc, yc, x2, y2, width=2, tags="arestas")
+                    # Aresta direcionada: desenhe uma única linha com seta
+                    self.canvas.create_line(x1, y1, x2, y2, width=2, arrow="last", tags="arestas")
                 else:
-                    # Aresta não direcionada: desenhe uma única linha
+                    # Aresta não direcionada: desenhe uma única linha sem seta
                     self.canvas.create_line(x1, y1, x2, y2, width=2, tags="arestas")
 
-            # Adiciona informações da aresta
-            texto_aresta = f"{dados['nome']}\n" if dados.get('nome') else ''
-            texto_aresta += f"Peso: {dados['weight']}\n" if dados['weight'] else ''
-            texto_aresta += "\n" if dados['directed'] else "\n"
-            yc_text = yc - 20  # Ajusta a posição y do texto
-            self.canvas.create_text(xc, yc_text, text=texto_aresta, font=("Helvetica", 8, "italic"))
+                # Adiciona informações da aresta
+                texto_aresta = f"{dados['nome']}\n" if dados.get('nome') else ''
+                texto_aresta += f"Peso: {dados['weight']}\n" if dados['weight'] else ''
+                texto_aresta += "\n" if dados['directed'] else "\n"
+                yc_text = yc - 20  # Ajusta a posição y do texto
+                self.canvas.create_text(xc, yc_text, text=texto_aresta, font=("Helvetica", 8, "italic"))
 
         for vertice, (x, y) in self.pos.items():
             # Desenha o vértice
@@ -157,9 +171,9 @@ class GrafoApp:
 
             # Adiciona informações do vértice
             self.canvas.create_text(x, y, text=str(vertice), font=("Helvetica", 10, "bold"), tags="vertices")
-
+    
     def gerar_grafo_networkx(self):
-        G = nx.DiGraph() if self.direcionado else nx.Graph()
+        G = nx.DiGraph() if self.grafo.is_directed() else nx.Graph()
 
         # Adiciona os vértices ao grafo
         for v in self.vertices:
@@ -167,7 +181,7 @@ class GrafoApp:
 
         # Adiciona as arestas ao grafo
         for v1, v2, estilo in self.arestas:
-            G.add_edge(v1, v2, weight=estilo['weight'])
+            G.add_edge(v1, v2, weight=float(estilo['weight']))
 
         return G
 
@@ -202,20 +216,71 @@ class GrafoApp:
 
     def executar_prim(self):
         try:
-            pos = nx.spring_layout(self.grafo)
-            arvore_geradora_minima_prim = nx.minimum_spanning_tree(self.grafo, algorithm='prim')
-            print("Árvore Geradora Mínima (Prim):", arvore_geradora_minima_prim.edges())
-            nx.draw_networkx_edges(self.grafo, pos, edgelist=arvore_geradora_minima_prim.edges(), edge_color='r', width=2)
+            # Calcula a árvore geradora mínima (AGM)
+            arvore_geradora_minima_prim = nx.minimum_spanning_tree(self.grafo.to_undirected(), algorithm='prim')
+            
+            # Desenha o grafo original
+            self.desenhar_grafo()
+
+            # Desenha as arestas da AGM em uma cor diferente
+            for v1, v2 in arvore_geradora_minima_prim.edges():
+                dados = self.grafo[v1][v2]
+                x1, y1 = self.pos[v1]
+                x2, y2 = self.pos[v2]
+                xc, yc = (x1 + x2) / 2, (y1 + y2) / 2
+
+                if v1 == v2:
+                    self.canvas.create_oval(x1, y1 - 30, x1 + 30, y1 + 30, outline="blue", tags="arestas_prim")
+                    self.canvas.create_line(x1 + 20, y1, x1 + 30, y1, arrow="last", tags="arestas_prim")
+                else:
+                    if dados['directed']:
+                        self.canvas.create_line(x1, y1, xc, yc, width=2, arrow="last", tags="arestas_prim")
+                        self.canvas.create_line(xc, yc, x2, y2, width=2, tags="arestas_prim")
+                    else:
+                        self.canvas.create_line(x1, y1, x2, y2, width=2, tags="arestas_prim")
+
+                    texto_aresta = f"{dados['nome']}\n" if dados.get('nome') else ''
+                    texto_aresta += f"Peso: {dados['weight']}\n" if dados['weight'] else ''
+                    texto_aresta += "\n" if dados['directed'] else "\n"
+                    yc_text = yc - 20
+                    self.canvas.create_text(xc, yc_text, text=texto_aresta, font=("Helvetica", 8, "italic"), tags="arestas_prim")
+
             plt.show()
+
         except Exception as e:
             messagebox.showinfo("Erro", f"Erro ao executar Prim: {e}")
 
     def executar_kruskal(self):
         try:
-            pos = nx.spring_layout(self.grafo)
-            arvore_geradora_minima_kruskal = nx.minimum_spanning_tree(self.grafo.to_undirected(), algorithm='kruskal')
-            print("Árvore Geradora Mínima (Kruskal):", arvore_geradora_minima_kruskal.edges())
-            nx.draw_networkx_edges(self.grafo, pos, edgelist=arvore_geradora_minima_kruskal.edges(), edge_color='r', width=2)
+            # Calcula a árvore geradora mínima (AGM)
+            arvore_geradora_minima_prim = nx.minimum_spanning_tree(self.grafo.to_undirected(), algorithm='prim')
+            
+            # Desenha o grafo original
+            self.desenhar_grafo()
+
+            # Desenha as arestas da AGM em uma cor diferente
+            for v1, v2 in arvore_geradora_minima_prim.edges():
+                dados = self.grafo[v1][v2]
+                x1, y1 = self.pos[v1]
+                x2, y2 = self.pos[v2]
+                xc, yc = (x1 + x2) / 2, (y1 + y2) / 2
+
+                if v1 == v2:
+                    self.canvas.create_oval(x1, y1 - 30, x1 + 30, y1 + 30, outline="blue", tags="arestas_prim")
+                    self.canvas.create_line(x1 + 20, y1, x1 + 30, y1, arrow="last", tags="arestas_prim")
+                else:
+                    if dados['directed']:
+                        self.canvas.create_line(x1, y1, xc, yc, width=2, arrow="last", tags="arestas_prim")
+                        self.canvas.create_line(xc, yc, x2, y2, width=2, tags="arestas_prim")
+                    else:
+                        self.canvas.create_line(x1, y1, x2, y2, width=2, tags="arestas_prim")
+
+                    texto_aresta = f"{dados['nome']}\n" if dados.get('nome') else ''
+                    texto_aresta += f"Peso: {dados['weight']}\n" if dados['weight'] else ''
+                    texto_aresta += "\n" if dados['directed'] else "\n"
+                    yc_text = yc - 20
+                    self.canvas.create_text(xc, yc_text, text=texto_aresta, font=("Helvetica", 8, "italic"), tags="arestas_prim")
+
             plt.show()
         except Exception as e:
             messagebox.showinfo("Erro", f"Erro ao executar Kruskal: {e}")
@@ -255,6 +320,8 @@ class GrafoApp:
             messagebox.showinfo("Hopcroft-Karp", f"Emparelhamento Máximo (Hopcroft-Karp):\n{matching_hopcroft_karp}")
         except Exception as e:
             messagebox.showinfo("Erro", f"Erro ao executar Hopcroft-Karp: {e}")
+
+
 
     def exibir_relatorio(self):
         relatorio = self.gerar_relatorio()
@@ -297,12 +364,11 @@ class GrafoApp:
         #relatorio += f"- Isomorfo: {nx.is_isomorphic(self.grafo, nx.complete_graph(len(self.grafo)))}\n"
         relatorio += f"- Regular: {nx.is_regular(self.grafo)}\n"
         relatorio += f"- Bipartido: {nx.is_bipartite(self.grafo)}\n"
-        relatorio += f"- Não-Direcionado: {not self.grafo.is_directed()}\n"
-        relatorio += f"- Desconexo: {nx.is_connected(self.grafo.to_undirected())}\n"
-        relatorio += f"- Acíclico: {nx.is_directed_acyclic_graph(self.grafo)}\n"
+        relatorio += f"- Direcionado: {self.grafo.is_directed()}\n"
+        relatorio += f"- Cíclico: {not nx.is_tree(self.grafo)}\n"
         relatorio += f"- Árvore: {nx.is_tree(self.grafo)}\n"
         relatorio += f"- Floresta: {nx.is_forest(self.grafo)}\n"
-        relatorio += f"- Possui Laços: {nx.number_of_selfloops(self.grafo) > 0}\n"
+        relatorio += f"- Possui Laços: {not nx.is_tree(self.grafo)}\n"
         relatorio += f"- Plano: {nx.is_planar(self.grafo)}\n"
         relatorio += f"- Ordem: {self.grafo.order()}\n"
         relatorio += f"- Grau Máximo: {max(dict(self.grafo.degree()).values())}\n"
